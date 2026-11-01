@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Contribution</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f5fc;
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .container {
+            background: white;
+            max-width: 500px;
+            margin: auto;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            color: #9370b5;
+        }
+
+        button {
+            background-color: #b39ddb;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+
+        button:hover {
+            background-color: #9575cd;
+        }
+
+        a {
+            color: #9370b5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Team Contribution</h1>
+
+        <p>Click the button to see who contributed to this project.</p>
+
+        <button id="load-contributor">
+            Show Contributor
+        </button>
+
+        <p id="contributor-student-id"></p>
+
+        <a href="index.html">Back to Task Manager</a>
+
+    </div>
+
+    <script>
+        document.getElementById("load-contributor")
+            .addEventListener("click", async function() {
+
+                const display = document.getElementById(
+                    "contributor-student-id"
+                );
+
+                try {
+                    const response = await fetch("contribution.json");
+
+                    if (!response.ok) {
+                        throw new Error("Could not load contributor information.");
+                    }
+
+                    const data = await response.json();
+
+                    display.textContent =
+                        "Contributor Student ID: " + data.contributorStudentId;
+
+                } catch (error) {
+                    display.textContent =
+                        "Error loading contributor information.";
+                }
+            });
+    </script>
+
+</body>
+</html>
