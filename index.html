@@ -4,41 +4,431 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Task Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 650px; margin: 40px auto; padding: 0 20px; line-height: 1.5; color: #222; }
-    header { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
-    #status-message { min-height: 24px; margin-bottom: 15px; font-weight: bold; }
-    .status-ok { color: #166534; }
-    .status-err { color: #991b1b; }
-    form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; }
-    input, textarea, button { padding: 8px 12px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
-    button { cursor: pointer; }
-    .task-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin-bottom: 10px; background: #fff; }
-    .task-item.is-completed .task-title { text-decoration: line-through; color: #6b7280; }
-    .task-actions { margin-top: 10px; display: flex; gap: 8px; }
-    .nav-link { margin-top: 30px; display: inline-block; font-size: 14px; }
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      color: var(--text-main);
+      padding: 40px 20px;
+      line-height: 1.6;
+    }
+
+    .app-container {
+      max-width: 680px;
+      margin: 0 auto;
+      animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Keyframe Animations */
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes taskEnter {
+      from { opacity: 0; transform: translateY(15px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes taskExit {
+      to { opacity: 0; transform: translateX(40px) scale(0.95); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(79, 70, 229, 0); }
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      padding: 20px 24px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    header h1 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #4f46e5, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .student-badge {
+      background: #eef2ff;
+      color: var(--primary);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 1px solid #c7d2fe;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .student-badge:hover {
+      transform: scale(1.04);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+    }
+
+    /* Status Message Toast */
+    #status-message {
+      min-height: 24px;
+      margin-bottom: 18px;
+      padding: 0 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+
+    #status-message.visible {
+      opacity: 1;
+      transform: translateY(0);
+      padding: 12px 16px;
+      pointer-events: auto;
+    }
+
+    .status-ok {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+    }
+
+    .status-err {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+    }
+
+    /* Form */
+    form#task-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 32px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    form#task-form.editing-mode {
+      border-color: var(--primary);
+      animation: pulseGlow 2s infinite;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text-main);
+      background: #ffffff;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      transition: all 0.25s ease;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .form-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 11px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    #task-submit {
+      flex: 1;
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
+
+    #task-submit:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+    }
+
+    #cancel-edit {
+      background: #f1f5f9;
+      color: var(--text-muted);
+      display: none;
+    }
+
+    #cancel-edit:hover {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+
+    /* Task List & Items */
+    #task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .task-item {
+      background: var(--card-bg);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 22px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: taskEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .task-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      background: var(--warning);
+      transition: background 0.3s ease;
+    }
+
+    .task-item.is-completed::before {
+      background: var(--success);
+    }
+
+    .task-item:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.1);
+      border-color: #cbd5e1;
+    }
+
+    .task-item.removing {
+      animation: taskExit 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      pointer-events: none;
+    }
+
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .task-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-main);
+      transition: color 0.3s ease;
+    }
+
+    .task-item.is-completed .task-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .task-description {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      white-space: pre-wrap;
+      transition: opacity 0.3s ease;
+    }
+
+    .task-item.is-completed .task-description {
+      opacity: 0.6;
+    }
+
+    .task-status {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: #fef3c7;
+      color: #b45309;
+      white-space: nowrap;
+      transition: all 0.3s ease;
+    }
+
+    .task-item.is-completed .task-status {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    /* Action Buttons inside Task */
+    .task-actions {
+      display: flex;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .task-actions button {
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      border-radius: 8px;
+    }
+
+    .toggle-task {
+      background: #ecfdf5;
+      color: #059669;
+    }
+
+    .toggle-task:hover {
+      background: #10b981;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .task-item.is-completed .toggle-task {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .task-item.is-completed .toggle-task:hover {
+      background: #64748b;
+      color: #ffffff;
+    }
+
+    .edit-task {
+      background: #eef2ff;
+      color: var(--primary);
+    }
+
+    .edit-task:hover {
+      background: var(--primary);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .delete-task {
+      background: #fef2f2;
+      color: var(--danger);
+      margin-left: auto;
+    }
+
+    .delete-task:hover {
+      background: var(--danger);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    /* Footer Navigation */
+    .footer-nav {
+      margin-top: 36px;
+      text-align: center;
+    }
+
+    #contribution-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 10px 20px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid #e0e7ff;
+      transition: all 0.25s ease;
+    }
+
+    #contribution-link:hover {
+      background: #ffffff;
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
+    }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>Task Manager</h1>
-    <div>Student ID: <span id="student-id">73704</span></div>
-  </header>
+  <div class="app-container">
+    <header>
+      <h1>Task Manager</h1>
+      <div class="student-badge">ID: <span id="student-id">73704</span></div>
+    </header>
 
-  <div id="status-message"></div>
+    <div id="status-message"></div>
 
-  <form id="task-form">
-    <input type="hidden" id="task-id" value="">
-    <input type="text" id="task-title" placeholder="Task title..." required>
-    <textarea id="task-description" placeholder="Task description..." rows="3"></textarea>
-    <button type="submit" id="task-submit">Add Task</button>
-  </form>
+    <form id="task-form">
+      <input type="hidden" id="task-id" value="">
+      <input type="text" id="task-title" placeholder="What needs to be done?" required>
+      <textarea id="task-description" placeholder="Add details or notes (optional)..." rows="3"></textarea>
+      <div class="form-buttons">
+        <button type="submit" id="task-submit">Add Task</button>
+        <button type="button" id="cancel-edit">Cancel</button>
+      </div>
+    </form>
 
-  <div id="task-list"></div>
+    <div id="task-list"></div>
 
-  <div>
-    <a href="contribution.html" id="contribution-link" class="nav-link">Go to Contribution Page</a>
+    <div class="footer-nav">
+      <a href="contribution.html" id="contribution-link">View Team Contribution &rarr;</a>
+    </div>
   </div>
 
   <script src="app.js"></script>
